@@ -28,12 +28,18 @@ all: ${CLIENT_O} ${SERVER_O}
 
 ${BUILD_DIR}/client/%.o: ${CLIENT_SRC}/%.c ${HEADERS}
 	mkdir -p $(dir $@)
-	$(CC) ${CFLAGS} ${INCLUDES} -c $< -o $@
+	$(CC) ${CFLAGS} ${INCLUDES} $< -o $@
 
 ${BUILD_DIR}/server/%.o: ${SERVER_SRC}/%.c ${HEADERS}
 	mkdir -p $(dir $@)
-	$(CC) ${CFLAGS} ${INCLUDES} -c $< -o $@
+	$(CC) ${CFLAGS} ${INCLUDES} $< -o $@
 
 
 clean:
 	rm -rf ${BUILD_DIR}
+
+run-client: ${CLIENT_O}
+	$^ 127.0.0.1 8080
+
+run-server: ${SERVER_O}
+	$^ 

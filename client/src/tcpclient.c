@@ -14,22 +14,52 @@ int main(int argc, char *argv[]){
     port_buf[99] = '\0';
 
     struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
     struct addrinfo *addresses;
     int rv = getaddrinfo(hostname_buf, port_buf, &hints, &addresses);
     if(rv < 0){
-        printf("Hostname can't be reached. DNS failed\n");
+        printf("getaddrinfo: %s\n", gai_strerror(rv));
         return -1;
     }
 
     int sockfd = try_connection(addresses);
     freeaddrinfo(addresses);
 
-    char message_buf[100] = {0};
-    while(!isQuitMessage(message_buf)){
-        //Use select to receive messages from server and scanf/send 
+    char send_msg_buf[100] = {0};
+    char recv_msg_buf[100] = {0};
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(sockfd, &readfds);
+    FD_SET(0, &readfds);        //for stdin
+    fd_set fds_cpy;
+
+
+    fd_set writefds;
+    FD_ZERO(&writefds);
+    FD_SET(sockfd, &writefds);
+    FD_SET(0, &writefds);        //for stdin
+
+    while(!isQuitMessage(send_msg_buf)){
+        memcpy(&fds_cpy, &readfds, sizeof(readfds));
+        select(sockfd+1, &fds_cpy, 0, 0, 0);
+        if(FD_ISSET(sockfd, &fds_cpy)){
+            //receive message 
+            recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+        }
+        if(FD_ISSET(0, &fds_cpy)){
+            //prompt for message
+            fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
+            send(sockfd, send_msg_buf, strlen(send_msg_buf), 0);
+        }
+
+        memcpy(&fds_cpy, &writefds, sizeof(writefds));
+        if(FD_ISSET(sockfd, &fds_cpy)){
+            //send message
+        }
+
     }
     close(sockfd);
 }
