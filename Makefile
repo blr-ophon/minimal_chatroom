@@ -1,5 +1,7 @@
 CC := gcc
-CFLAGS := 
+OPT := -O0
+CFLAGS = -std=gnu99 -fPIC -g -Wall -Wextra -pedantic $(OPT)
+
 INCLUDES := -I./client/include -I./server/include
 HEADERS := $(shell find ./ -name '*.h')
 
@@ -31,3 +33,7 @@ ${BUILD_DIR}/client/%.o: ${CLIENT_SRC}/%.c ${HEADERS}
 ${BUILD_DIR}/server/%.o: ${SERVER_SRC}/%.c ${HEADERS}
 	mkdir -p $(dir $@)
 	$(CC) ${CFLAGS} ${INCLUDES} -c $< -o $@
+
+
+clean:
+	rm -rf ${BUILD_DIR}
