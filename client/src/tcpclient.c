@@ -23,13 +23,22 @@ int main(int argc, char *argv[]){
         printf("Hostname can't be reached. DNS failed\n");
         return -1;
     }
+
     int sockfd = try_connection(addresses);
-
-
     freeaddrinfo(addresses);
 
+    char message_buf[100] = {0};
+    while(!isQuitMessage(message_buf)){
+        //Use select to receive messages from server and scanf/send 
+    }
     close(sockfd);
 }
+
+bool isQuitMessage(char *msg){
+   return strncmp(msg, "/exit", strlen(msg)) == 0; 
+}
+
+
 
 //Traverses an addrinfo linked list, stoping at the first one able to connect
 //returns socket file descriptor or -1 if it failed
@@ -37,6 +46,7 @@ int try_connection(struct addrinfo *const addresses){
     int sockfd = -1;
     struct addrinfo *p;
     for(p = addresses; p != NULL; p = p->ai_next){
+        printf("Trying:\n");
         print_addr(p);
 
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
@@ -54,7 +64,10 @@ int try_connection(struct addrinfo *const addresses){
     }
     if(sockfd < 0){
         printf("Hostname can't be reached. Connection failed\n");
+        return -1;
     }
+    
+    printf("Connection established!\n");
     return sockfd;
 }
 
