@@ -39,7 +39,7 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 run-client: ${CLIENT_O}
-	$^ 127.0.0.1 8080
+	$^ www.google.com 80
 
 run-server: ${SERVER_O}
 	$^ 

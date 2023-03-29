@@ -28,38 +28,45 @@ int main(int argc, char *argv[]){
     int sockfd = try_connection(addresses);
     freeaddrinfo(addresses);
 
-    char send_msg_buf[100] = {0};
-    char recv_msg_buf[100] = {0};
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(sockfd, &readfds);
-    FD_SET(0, &readfds);        //for stdin
-    fd_set fds_cpy;
+    char send_msg_buf[4096] = {0};
+    char recv_msg_buf[4096] = {0};
 
+    struct timeval timeout;
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
 
-    fd_set writefds;
-    FD_ZERO(&writefds);
-    FD_SET(sockfd, &writefds);
-    FD_SET(0, &writefds);        //for stdin
+    fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
 
     while(!isQuitMessage(send_msg_buf)){
-        memcpy(&fds_cpy, &readfds, sizeof(readfds));
-        select(sockfd+1, &fds_cpy, 0, 0, 0);
-        if(FD_ISSET(sockfd, &fds_cpy)){
-            //receive message 
-            recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(sockfd, &readfds);
+        FD_SET(0, &readfds);        //for stdin
+
+        if(select(sockfd+1, &readfds, 0, 0, &timeout) < 0){
+            perror("select");
         }
-        if(FD_ISSET(0, &fds_cpy)){
+
+        if(FD_ISSET(sockfd, &readfds)){
+            //receive message 
+            int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+            if(recv_bytes == -1){
+                perror("recv");
+            }else{
+                printf("%d bytes received. Message:\n%s\n", recv_bytes, recv_msg_buf);
+            }
+        }
+
+        if(FD_ISSET(0, &readfds)){
             //prompt for message
             fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
-            send(sockfd, send_msg_buf, strlen(send_msg_buf), 0);
+            int bytes_sent = send(sockfd, send_msg_buf, strlen(send_msg_buf), 0);
+            if(bytes_sent == -1){
+                perror("recv");
+            }
+            printf("%d bytes sent\n", bytes_sent);
         }
-
-        memcpy(&fds_cpy, &writefds, sizeof(writefds));
-        if(FD_ISSET(sockfd, &fds_cpy)){
-            //send message
-        }
-
     }
     close(sockfd);
 }
