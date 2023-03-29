@@ -32,8 +32,8 @@ int main(int argc, char *argv[]){
     char recv_msg_buf[4096] = {0};
 
     struct timeval timeout;
-    timeout.tv_sec = 2;
-    timeout.tv_usec = 0;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;
 
     fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
 
@@ -48,9 +48,9 @@ int main(int argc, char *argv[]){
             perror("select");
         }
 
-        if(FD_ISSET(sockfd, &readfds)){
-            //receive message 
+        if(FD_ISSET(sockfd, &readfds)){ //receive message 
             int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+            recv_msg_buf[4095] = '\0';
             if(recv_bytes == -1){
                 perror("recv");
             }else{
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
 }
 
 bool isQuitMessage(char *msg){
-   return strncmp(msg, "/exit", strlen(msg)) == 0; 
+   return strncmp(msg, "/exit\n", strlen(msg)) == 0; 
 }
 
 
