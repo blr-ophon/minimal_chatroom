@@ -8,7 +8,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+
 #include <netdb.h>
+#include <unistd.h>
 
 typedef struct fd_node{
     int fd;
@@ -22,6 +24,8 @@ void fdlist_fd_clr(int fd, fdNode *fd_list);
 void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list);
 
 int fdlist_getmax(fdNode *fd_list);
+
+void broadcast_msg(char *msg, fdNode *fdlist);
 
 int try_addresses(struct addrinfo *const addresses);
 

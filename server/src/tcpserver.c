@@ -43,10 +43,28 @@ int main(void){
         for(p = monitored_fds; p != NULL; p = p->nextNode){
             if(FD_ISSET(p->fd, &ready_fds)){
                 char recv_msg_buf[4096];
-                recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+                int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+                if(bytes_recv < 0){
+                    printf("Failed receiving message\n");
+                }
+                recv_msg_buf[bytes_recv] = '\0';
+
                 //send message to all clients
+                broadcast_msg(recv_msg_buf, monitored_fds);
             }
-              
+        }
+    }
+    close(comm_sockfd);
+}
+
+void broadcast_msg(char *msg, fdNode *fdlist){
+    //expects the communication node to be the first on the list
+    //and skips it
+    fdNode *p = fdlist->nextNode;
+    for(; p != NULL; p = p->nextNode){
+        int bytes_sent = send(p->fd, msg, strlen(msg), 0);
+        if(bytes_sent < 0){
+            printf("Failed broadcasting message\n");
         }
     }
 }
@@ -133,7 +151,7 @@ void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list){
     }
 }
 
-int fdlis_getmax(fdNode *fd_list){
+int fdlist_getmax(fdNode *fd_list){
     fdNode *p;
     int max = 0;
     for(p = fd_list; p != NULL; p = p->nextNode){
