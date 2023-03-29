@@ -16,25 +16,38 @@ int main(void){
         exit(EXIT_FAILURE);
     }
     int comm_sockfd = try_addresses(address_list);
+    if(comm_sockfd < 0){
+        printf("Unable to bind address to socket\n");
+        exit(EXIT_FAILURE);
+    }
+
     freeaddrinfo(address_list);
     
+    fdNode *monitored_fds = NULL;
+    fdlist_fd_set(comm_sockfd, monitored_fds);
 
-    fd_set all_fds, afds_cpy;
-    FD_ZERO(&all_fds);
-    FD_SET(comm_sockfd, &all_fds);
-
+    fd_set ready_fds;
     for(;;){
-        //new connections
-        struct sockaddr client_addr;
-        socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
-        int client_sockfd = accept(comm_sockfd, &client_addr, &client_addr_len);
+        fdlist_to_fdset(&ready_fds, monitored_fds);
+        select(fdlist_getmax(monitored_fds), &ready_fds, 0, 0, 0);
 
-        //receive from peers...
-        char recv_msg_buf[4096];
-        recv(client_sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
-        //...and sent to all clients
-        
-        
+        //new connections
+        if(FD_ISSET(comm_sockfd, &ready_fds)){
+            struct sockaddr client_addr;
+            socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
+            int client_sockfd = accept(comm_sockfd, &client_addr, &client_addr_len);
+            fdlist_fd_set(client_sockfd, monitored_fds);
+        }
+
+        fdNode *p;
+        for(p = monitored_fds; p != NULL; p = p->nextNode){
+            if(FD_ISSET(p->fd, &ready_fds)){
+                char recv_msg_buf[4096];
+                recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+                //send message to all clients
+            }
+              
+        }
     }
 }
 
@@ -74,11 +87,10 @@ int try_addresses(struct addrinfo *const addresses){
         break;
     }
     if(sockfd < 0){
-        printf("Failed creating server. Can't bind socket\n");
         return -1;
     }
     
-    printf("Server Initialized\n");
+    printf("Adress bind successful\n");
     return sockfd;
 }
 
@@ -93,4 +105,41 @@ void print_addr(struct addrinfo *addr){
         printf("%s\n%s\n", host_buf, serv_buf);
 }
 
+void fdlist_fd_set(int fd, fdNode *fd_list){
+    fdNode *p;
+    for(p = fd_list; p != NULL; p = p->nextNode){}
+    p = malloc(sizeof(fdNode));
+    p->fd = fd;
+    p->nextNode = NULL;
+}
 
+void fdlist_fd_clr(int fd, fdNode *fd_list){
+    fdNode *p;
+    fdNode *previous_node = fd_list;
+    for(p = fd_list; p->fd != fd; p = p->nextNode){
+        if(p == NULL){
+            return;
+        }
+        previous_node = fd_list;
+    }
+    previous_node->nextNode = p->nextNode;
+    free(p);
+}
+
+void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list){
+    fdNode *p;
+    for(p = fd_list; p != NULL; p = p->nextNode){
+        FD_SET(p->fd, ready_fds);
+    }
+}
+
+int fdlis_getmax(fdNode *fd_list){
+    fdNode *p;
+    int max = 0;
+    for(p = fd_list; p != NULL; p = p->nextNode){
+        if(p->fd > max){
+            max = p->fd;
+        }
+    }
+    return max;
+}
