@@ -12,9 +12,12 @@ int main(void){
     fd_set ready_fds;
     FD_ZERO(&ready_fds);
 
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;
     for(;;){
         fdlist_to_fdset(&ready_fds, monitored_fds);
-        select(fdlist_getmax(monitored_fds)+1, &ready_fds, 0, 0, 0);
+        select(fdlist_getmax(monitored_fds)+1, &ready_fds, 0, 0, &timeout);
 
         //new connections
         if(FD_ISSET(monitored_fds->fd, &ready_fds)){
