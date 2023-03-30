@@ -55,8 +55,8 @@ int main(int argc, char *argv[]){
         if(FD_ISSET(sockfd, &readfds)){ //receive message 
             int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
             recv_msg_buf[4095] = '\0';
-            if(recv_bytes == -1){
-                perror("recv");
+            if(recv_bytes < 1){
+                printf("Server connection closed\n");
             }else{
                 printf("%d bytes received. Message:\n%s\n", recv_bytes, recv_msg_buf);
             }

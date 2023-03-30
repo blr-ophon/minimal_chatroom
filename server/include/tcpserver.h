@@ -14,6 +14,7 @@
 
 typedef struct fd_node{
     int fd;
+    struct sockaddr adr;
     struct fd_node *nextNode;
 }fdNode;
 

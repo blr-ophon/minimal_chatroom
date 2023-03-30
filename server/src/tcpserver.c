@@ -48,8 +48,10 @@ int main(void){
                 if(FD_ISSET(p->fd, &ready_fds)){
                     char recv_msg_buf[4096];
                     int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
-                    if(bytes_recv < 0){
-                        printf("Failed receiving message\n");
+                    if(bytes_recv < 1){
+                        printf("Client connection closed\n");
+                        fdlist_fd_clr(p->fd, monitored_fds);
+                        continue;
                     }
                     recv_msg_buf[bytes_recv] = '\0';
                     printf("%d bytes received\n", bytes_recv);
@@ -120,7 +122,7 @@ int try_addresses(struct addrinfo *const addresses){
         return -1;
     }
     
-    printf("Adress bind successful\n");
+    printf("Address bind successful\n");
     return sockfd;
 }
 
