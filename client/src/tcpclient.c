@@ -125,7 +125,7 @@ void print_addr(struct addrinfo *addr){
         char host_buf[100]; 
         char serv_buf[100];
         int rv = getnameinfo(addr->ai_addr, addr->ai_addrlen, host_buf, sizeof(host_buf),
-                serv_buf, sizeof(serv_buf), NI_NUMERICHOST);
+                serv_buf, sizeof(serv_buf), NI_NUMERICHOST | NI_NUMERICSERV);
         if(rv < 0){
             printf("getnameinfo() failed\n");
         }
