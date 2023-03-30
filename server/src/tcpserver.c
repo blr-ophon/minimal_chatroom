@@ -24,19 +24,21 @@ int main(void){
     freeaddrinfo(address_list);
     
     fdNode *monitored_fds = NULL;
-    fdlist_fd_set(comm_sockfd, monitored_fds);
+    fdlist_fd_set(comm_sockfd, &monitored_fds);
 
     fd_set ready_fds;
     for(;;){
         fdlist_to_fdset(&ready_fds, monitored_fds);
-        select(fdlist_getmax(monitored_fds), &ready_fds, 0, 0, 0);
+        select(fdlist_getmax(monitored_fds)+1, &ready_fds, 0, 0, 0);
 
         //new connections
         if(FD_ISSET(comm_sockfd, &ready_fds)){
             struct sockaddr client_addr;
             socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
             int client_sockfd = accept(comm_sockfd, &client_addr, &client_addr_len);
-            fdlist_fd_set(client_sockfd, monitored_fds);
+            printf("New client connected\n");
+            fdlist_fd_set(client_sockfd, &monitored_fds);
+            //TODO: save sockaddrs on fd nodes to monitor users
         }
 
         fdNode *p;
@@ -48,6 +50,8 @@ int main(void){
                     printf("Failed receiving message\n");
                 }
                 recv_msg_buf[bytes_recv] = '\0';
+                printf("%d bytes received\n", bytes_recv);
+                printf("%s", recv_msg_buf);
 
                 //send message to all clients
                 broadcast_msg(recv_msg_buf, monitored_fds);
@@ -81,6 +85,7 @@ int try_addresses(struct addrinfo *const addresses){
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if(sockfd < 0){
             sockfd = -1;
+            printf("socket() failed\n");
             perror("socket");
             continue;
         }
@@ -88,17 +93,20 @@ int try_addresses(struct addrinfo *const addresses){
         int yes = 1;
         if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0){
             sockfd = -1;
+            printf("setsockopt() failed\n");
             perror("setsockopt");
             continue;
         }
 
         if(bind(sockfd, p->ai_addr, p->ai_addrlen) < 0){
             sockfd = -1;
+            printf("bind() failed\n");
             perror("bind");
             continue;
         }
         if(listen(sockfd, 20) < 0){
             sockfd = -1;
+            printf("listen() failed\n");
             perror("listen");
             continue;
         }
@@ -123,12 +131,13 @@ void print_addr(struct addrinfo *addr){
         printf("%s\n%s\n", host_buf, serv_buf);
 }
 
-void fdlist_fd_set(int fd, fdNode *fd_list){
+void fdlist_fd_set(int fd, fdNode **fd_list){
     fdNode *p;
-    for(p = fd_list; p != NULL; p = p->nextNode){}
+    for(p = *fd_list; p != NULL; p = p->nextNode){}
     p = malloc(sizeof(fdNode));
     p->fd = fd;
     p->nextNode = NULL;
+    *fd_list = p;
 }
 
 void fdlist_fd_clr(int fd, fdNode *fd_list){
@@ -155,7 +164,7 @@ int fdlist_getmax(fdNode *fd_list){
     fdNode *p;
     int max = 0;
     for(p = fd_list; p != NULL; p = p->nextNode){
-        if(p->fd > max){
+        if(p->fd >= max){
             max = p->fd;
         }
     }

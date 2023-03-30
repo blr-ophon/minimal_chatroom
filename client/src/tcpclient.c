@@ -26,6 +26,10 @@ int main(int argc, char *argv[]){
     }
 
     int sockfd = try_connection(addresses);
+    if(sockfd < 0){
+        printf("Hostname can't be reached. Connection failed\n");
+        exit(EXIT_FAILURE);
+    }
     freeaddrinfo(addresses);
 
     char send_msg_buf[4096] = {0};
@@ -100,7 +104,6 @@ int try_connection(struct addrinfo *const addresses){
         break;
     }
     if(sockfd < 0){
-        printf("Hostname can't be reached. Connection failed\n");
         return -1;
     }
     

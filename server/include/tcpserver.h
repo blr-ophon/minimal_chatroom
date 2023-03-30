@@ -17,7 +17,7 @@ typedef struct fd_node{
     struct fd_node *nextNode;
 }fdNode;
 
-void fdlist_fd_set(int fd, fdNode *fd_list);
+void fdlist_fd_set(int fd, fdNode **fd_list);
 
 void fdlist_fd_clr(int fd, fdNode *fd_list);
 
