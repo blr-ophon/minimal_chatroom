@@ -36,36 +36,40 @@ int main(void){
             struct sockaddr client_addr;
             socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
             int client_sockfd = accept(comm_sockfd, &client_addr, &client_addr_len);
+            if(client_sockfd < 0){
+                printf("Failed accepting connection\n");
+            }
             printf("New client connected\n");
             fdlist_fd_set(client_sockfd, &monitored_fds);
             //TODO: save sockaddrs on fd nodes to monitor users
-        }
+        }else{
+            fdNode *p = monitored_fds->nextNode;
+            for(; p != NULL; p = p->nextNode){
+                if(FD_ISSET(p->fd, &ready_fds)){
+                    char recv_msg_buf[4096];
+                    int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+                    if(bytes_recv < 0){
+                        printf("Failed receiving message\n");
+                    }
+                    recv_msg_buf[bytes_recv] = '\0';
+                    printf("%d bytes received\n", bytes_recv);
+                    printf("%s", recv_msg_buf);
 
-        fdNode *p;
-        for(p = monitored_fds; p != NULL; p = p->nextNode){
-            if(FD_ISSET(p->fd, &ready_fds)){
-                char recv_msg_buf[4096];
-                int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
-                if(bytes_recv < 0){
-                    printf("Failed receiving message\n");
+                    //send message to all clients
+                    broadcast_msg(recv_msg_buf, monitored_fds, p->fd);
                 }
-                recv_msg_buf[bytes_recv] = '\0';
-                printf("%d bytes received\n", bytes_recv);
-                printf("%s", recv_msg_buf);
-
-                //send message to all clients
-                broadcast_msg(recv_msg_buf, monitored_fds);
             }
         }
     }
     close(comm_sockfd);
 }
 
-void broadcast_msg(char *msg, fdNode *fdlist){
+void broadcast_msg(char *msg, fdNode *fdlist, int senderfd){
     //expects the communication node to be the first on the list
     //and skips it
     fdNode *p = fdlist->nextNode;
     for(; p != NULL; p = p->nextNode){
+        if(p->fd == senderfd) continue;
         int bytes_sent = send(p->fd, msg, strlen(msg), 0);
         if(bytes_sent < 0){
             printf("Failed broadcasting message\n");
@@ -132,12 +136,20 @@ void print_addr(struct addrinfo *addr){
 }
 
 void fdlist_fd_set(int fd, fdNode **fd_list){
+    fdNode *previous_node = NULL;
     fdNode *p;
-    for(p = *fd_list; p != NULL; p = p->nextNode){}
+    for(p = *fd_list; p != NULL; p = p->nextNode){
+        previous_node = p;
+    }
     p = malloc(sizeof(fdNode));
     p->fd = fd;
     p->nextNode = NULL;
-    *fd_list = p;
+
+    if(previous_node == NULL){ //empty list
+        *fd_list = p;
+    }else{
+        previous_node->nextNode = p;
+    }
 }
 
 void fdlist_fd_clr(int fd, fdNode *fd_list){

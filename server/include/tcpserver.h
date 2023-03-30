@@ -25,7 +25,7 @@ void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list);
 
 int fdlist_getmax(fdNode *fd_list);
 
-void broadcast_msg(char *msg, fdNode *fdlist);
+void broadcast_msg(char *msg, fdNode *fdlist, int senderfd);
 
 int try_addresses(struct addrinfo *const addresses);
 
