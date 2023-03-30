@@ -20,13 +20,19 @@ typedef struct fd_node{
     struct fd_node *nextNode;
 }fdNode;
 
+void fdlist_free(fdNode *topnode);
+
 void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list);
 
-void fdlist_fd_clr(int fd, fdNode *fd_list, fd_set *fdset);
+void fdlist_fd_clr(int fd, fdNode *fd_list);
 
 void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list);
 
 int fdlist_getmax(fdNode *fd_list);
+
+fdNode *comm_sock_init(void);
+
+void handle_connections(fdNode *monitored_fds, fd_set ready_fds);
 
 void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source);
 

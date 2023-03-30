@@ -3,69 +3,96 @@
 #define PORT "8080"
 
 int main(void){
+    fdNode *monitored_fds = comm_sock_init();
+    if(monitored_fds == NULL){
+        printf("Failed creating communication socket\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fd_set ready_fds;
+    FD_ZERO(&ready_fds);
+
+    for(;;){
+        fdlist_to_fdset(&ready_fds, monitored_fds);
+        select(fdlist_getmax(monitored_fds)+1, &ready_fds, 0, 0, 0);
+
+        //new connections
+        if(FD_ISSET(monitored_fds->fd, &ready_fds)){
+
+            struct sockaddr client_addr;
+            socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
+            int client_sockfd = accept(monitored_fds->fd, &client_addr, &client_addr_len);
+            if(client_sockfd < 0){
+                printf("Failed accepting connection\n");
+            }
+            printf("New client connected\n");
+            fdlist_fd_set(client_sockfd, client_addr, client_addr_len, &monitored_fds);
+
+        }else{
+            handle_connections(monitored_fds, ready_fds);
+        }
+    }
+    //TODO: free monitored_fds
+    fdlist_free(monitored_fds);
+}
+
+void fdlist_free(fdNode *topnode){
+    fdNode *p, *temp;
+    for(p = topnode; p != NULL; p = temp){
+        temp = p->nextNode;
+        close(p->fd);
+        free(p);
+    }
+}
+
+fdNode *comm_sock_init(void){
+    struct addrinfo *address_list;
+
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    struct addrinfo *address_list;
     int rv = getaddrinfo(NULL, PORT, &hints, &address_list);
     if(rv < 0){
         printf("getaddrinfo: %s\n", gai_strerror(rv));
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     struct addrinfo valid_addr;
     int comm_sockfd = try_addresses(address_list, &valid_addr);
     if(comm_sockfd < 0){
         printf("Unable to bind address to socket\n");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
-
     freeaddrinfo(address_list);
-    
+
     fdNode *monitored_fds = NULL;
     fdlist_fd_set(comm_sockfd, *valid_addr.ai_addr, valid_addr.ai_addrlen, &monitored_fds);
 
-    fd_set ready_fds;
-    for(;;){
-        fdlist_to_fdset(&ready_fds, monitored_fds);
-        select(fdlist_getmax(monitored_fds)+1, &ready_fds, 0, 0, 0);
+    return monitored_fds;
+}
 
-        //new connections
-        if(FD_ISSET(comm_sockfd, &ready_fds)){
-            struct sockaddr client_addr;
-            socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
-            int client_sockfd = accept(comm_sockfd, &client_addr, &client_addr_len);
-            if(client_sockfd < 0){
-                printf("Failed accepting connection\n");
+void handle_connections(fdNode *monitored_fds, fd_set ready_fds){
+    fdNode *p = monitored_fds->nextNode;
+    for(; p != NULL; p = p->nextNode){
+        if(FD_ISSET(p->fd, &ready_fds)){
+            char recv_msg_buf[4096];
+            int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
+            if(bytes_recv < 1){
+                printf("Client connection closed\n");
+                fdlist_fd_clr(p->fd, monitored_fds);
+                break;
             }
-            printf("New client connected\n");
-            fdlist_fd_set(client_sockfd, client_addr, client_addr_len, &monitored_fds);
-            //TODO: save sockaddrs on fd nodes to monitor users
-        }else{
-            fdNode *p = monitored_fds->nextNode;
-            for(; p != NULL; p = p->nextNode){
-                if(FD_ISSET(p->fd, &ready_fds)){
-                    char recv_msg_buf[4096];
-                    int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
-                    if(bytes_recv < 1){
-                        printf("Client connection closed\n");
-                        fdlist_fd_clr(p->fd, monitored_fds, &ready_fds);
-                        continue;
-                    }
-                    recv_msg_buf[bytes_recv] = '\0';
-                    printf("%d bytes received\n", bytes_recv);
-                    printf("> %s", recv_msg_buf);
+            recv_msg_buf[bytes_recv] = '\0';
+            printf("%d bytes received\n", bytes_recv);
+            printf("> %s", recv_msg_buf);
 
-                    //send message to all clients
-                    broadcast_msg(recv_msg_buf, monitored_fds, p);
-                }
-            }
+            //send message to all clients
+            broadcast_msg(recv_msg_buf, monitored_fds, p);
         }
     }
-    close(comm_sockfd);
 }
 
 void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source){
@@ -169,8 +196,7 @@ void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list)
     }
 }
 
-void fdlist_fd_clr(int fd, fdNode *fd_list, fd_set *fdset){
-    FD_CLR(fd, fdset);
+void fdlist_fd_clr(int fd, fdNode *fd_list){
     fdNode *p;
     fdNode *previous_node = fd_list;
     for(p = fd_list; p->fd != fd; p = p->nextNode){
@@ -184,6 +210,7 @@ void fdlist_fd_clr(int fd, fdNode *fd_list, fd_set *fdset){
 }
 
 void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list){
+    FD_ZERO(ready_fds);
     fdNode *p;
     for(p = fd_list; p != NULL; p = p->nextNode){
         FD_SET(p->fd, ready_fds);
