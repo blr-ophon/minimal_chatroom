@@ -39,14 +39,21 @@ int main(int argc, char *argv[]){
     timeout.tv_sec = 0;
     timeout.tv_usec = 100000;
 
-    fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
+    printf("Nickname: ");
+    char nick_buf[16];
+    fgets(nick_buf, sizeof(nick_buf), stdin);
+    int bytes_sent = send(sockfd, nick_buf, strlen(nick_buf), 0);
+    if(bytes_sent == -1){
+        perror("recv");
+    }
 
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(sockfd, &readfds);
     FD_SET(0, &readfds);        //for stdin
 
-    while(!isQuitMessage(send_msg_buf)){
+    //while(!isQuitMessage(send_msg_buf)){
+    while(1){
         fd_set cpy_fds = readfds;
 
         if(select(sockfd+1, &cpy_fds, 0, 0, &timeout) < 0){

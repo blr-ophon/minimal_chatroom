@@ -25,8 +25,17 @@ int main(void){
             if(client_sockfd < 0){
                 printf("Failed accepting connection\n");
             }
-            printf("New client connected\n");
-            fdlist_fd_set(client_sockfd, client_addr, client_addr_len, &monitored_fds);
+
+            char nick_buf[16];
+            printf("Client connected\n");
+            int bytes_recv = recv(client_sockfd, nick_buf, sizeof(nick_buf), 0);
+            nick_buf[bytes_recv-1] = '\0';
+            if(bytes_recv < 1){
+                printf("Client connection closed\n");
+                continue;
+            }
+
+            fdlist_fd_set(client_sockfd, client_addr, client_addr_len, nick_buf, &monitored_fds);
 
         }else{
             handle_connections(monitored_fds, ready_fds);
@@ -69,7 +78,7 @@ fdNode *comm_sock_init(void){
     freeaddrinfo(address_list);
 
     fdNode *monitored_fds = NULL;
-    fdlist_fd_set(comm_sockfd, *valid_addr.ai_addr, valid_addr.ai_addrlen, &monitored_fds);
+    fdlist_fd_set(comm_sockfd, *valid_addr.ai_addr, valid_addr.ai_addrlen, " ", &monitored_fds);
 
     return monitored_fds;
 }
@@ -108,8 +117,9 @@ void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source){
         printf("getnameinfo Failed\n");
     }
 
-    char formatted_msg[4096 + 32 + 3];
-    sprintf(formatted_msg, "[%s] ", origin_str);
+    char formatted_msg[4096 + 32 + 16 + 5]; //msg + maxaddr + nick + brackets;
+    sprintf(formatted_msg, "[%s(%s)] ", source->nick, origin_str);
+    //strncat(formatted_msg, origin_str, strlen(origin_str));
 
     strncat(formatted_msg, msg, strlen(msg));
     fdNode *p = fdlist->nextNode;
@@ -180,7 +190,7 @@ void print_addr(struct addrinfo *addr){
         printf("%s\n%s\n", host_buf, serv_buf);
 }
 
-void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list){
+void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNode **fd_list){
     fdNode *previous_node = NULL;
     fdNode *p;
     for(p = *fd_list; p != NULL; p = p->nextNode){
@@ -190,6 +200,7 @@ void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list)
     p->fd = fd;
     p->adr = adr;
     p->addrlen = len;
+    p->nick = nick;
     p->nextNode = NULL;
 
     if(previous_node == NULL){ //empty list

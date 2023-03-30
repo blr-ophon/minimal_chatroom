@@ -17,12 +17,13 @@ typedef struct fd_node{
     int fd;
     struct sockaddr adr;
     socklen_t addrlen;
+    char *nick;
     struct fd_node *nextNode;
 }fdNode;
 
 void fdlist_free(fdNode *topnode);
 
-void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list);
+void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNode **fd_list);
 
 void fdlist_fd_clr(int fd, fdNode **fd_list);
 
