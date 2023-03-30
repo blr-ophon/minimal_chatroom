@@ -55,13 +55,13 @@ int main(int argc, char *argv[]){
 
         if(FD_ISSET(sockfd, &cpy_fds)){ //receive message 
             int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
-            recv_msg_buf[4095] = '\0';
+            recv_msg_buf[recv_bytes] = '\0';
             if(recv_bytes < 1){
-                printf("Server connection closed\n");
+                printf("Server connection closed");
                 FD_CLR(sockfd, &readfds);
                 break;
             }else{
-                printf("%d bytes received. Message:\n%s\n", recv_bytes, recv_msg_buf);
+                printf("> %s", recv_msg_buf);
             }
         }
 
@@ -72,7 +72,6 @@ int main(int argc, char *argv[]){
             if(bytes_sent == -1){
                 perror("recv");
             }
-            printf("%d bytes sent\n", bytes_sent);
         }
     }
     close(sockfd);

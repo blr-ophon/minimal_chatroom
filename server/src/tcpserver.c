@@ -15,7 +15,9 @@ int main(void){
         printf("getaddrinfo: %s\n", gai_strerror(rv));
         exit(EXIT_FAILURE);
     }
-    int comm_sockfd = try_addresses(address_list);
+
+    struct addrinfo valid_addr;
+    int comm_sockfd = try_addresses(address_list, &valid_addr);
     if(comm_sockfd < 0){
         printf("Unable to bind address to socket\n");
         exit(EXIT_FAILURE);
@@ -24,7 +26,7 @@ int main(void){
     freeaddrinfo(address_list);
     
     fdNode *monitored_fds = NULL;
-    fdlist_fd_set(comm_sockfd, &monitored_fds);
+    fdlist_fd_set(comm_sockfd, *valid_addr.ai_addr, valid_addr.ai_addrlen, &monitored_fds);
 
     fd_set ready_fds;
     for(;;){
@@ -40,7 +42,7 @@ int main(void){
                 printf("Failed accepting connection\n");
             }
             printf("New client connected\n");
-            fdlist_fd_set(client_sockfd, &monitored_fds);
+            fdlist_fd_set(client_sockfd, client_addr, client_addr_len, &monitored_fds);
             //TODO: save sockaddrs on fd nodes to monitor users
         }else{
             fdNode *p = monitored_fds->nextNode;
@@ -50,15 +52,15 @@ int main(void){
                     int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
                     if(bytes_recv < 1){
                         printf("Client connection closed\n");
-                        fdlist_fd_clr(p->fd, monitored_fds);
+                        fdlist_fd_clr(p->fd, monitored_fds, &ready_fds);
                         continue;
                     }
                     recv_msg_buf[bytes_recv] = '\0';
                     printf("%d bytes received\n", bytes_recv);
-                    printf("%s", recv_msg_buf);
+                    printf("> %s", recv_msg_buf);
 
                     //send message to all clients
-                    broadcast_msg(recv_msg_buf, monitored_fds, p->fd);
+                    broadcast_msg(recv_msg_buf, monitored_fds, p);
                 }
             }
         }
@@ -66,13 +68,23 @@ int main(void){
     close(comm_sockfd);
 }
 
-void broadcast_msg(char *msg, fdNode *fdlist, int senderfd){
+void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source){
     //expects the communication node to be the first on the list
     //and skips it
+    char origin_str[32];
+    int rv = getnameinfo(&source->adr, source->addrlen, origin_str, sizeof(origin_str),
+            0, 0, NI_NUMERICHOST);
+    if(rv < 0){
+        printf("getnameinfo Failed\n");
+    }
+
+    char formatted_msg[4096 + 32 + 3];
+    sprintf(formatted_msg, "[%s] ", origin_str);
+
+    strncat(formatted_msg, msg, strlen(msg));
     fdNode *p = fdlist->nextNode;
     for(; p != NULL; p = p->nextNode){
-        if(p->fd == senderfd) continue;
-        int bytes_sent = send(p->fd, msg, strlen(msg), 0);
+        int bytes_sent = send(p->fd, formatted_msg, strlen(formatted_msg), 0);
         if(bytes_sent < 0){
             printf("Failed broadcasting message\n");
         }
@@ -81,7 +93,7 @@ void broadcast_msg(char *msg, fdNode *fdlist, int senderfd){
 
 //Traverses an addrinfo linked list, stoping at the first one able to bind
 //returns socket file descriptor or -1 if it failed
-int try_addresses(struct addrinfo *const addresses){
+int try_addresses(struct addrinfo *const addresses, struct addrinfo *returned){
     int sockfd = -1;
     struct addrinfo *p;
     for(p = addresses; p != NULL; p = p->ai_next){
@@ -121,8 +133,9 @@ int try_addresses(struct addrinfo *const addresses){
     if(sockfd < 0){
         return -1;
     }
-    
+
     printf("Address bind successful\n");
+    memcpy(returned, p, sizeof(struct addrinfo));
     return sockfd;
 }
 
@@ -137,7 +150,7 @@ void print_addr(struct addrinfo *addr){
         printf("%s\n%s\n", host_buf, serv_buf);
 }
 
-void fdlist_fd_set(int fd, fdNode **fd_list){
+void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list){
     fdNode *previous_node = NULL;
     fdNode *p;
     for(p = *fd_list; p != NULL; p = p->nextNode){
@@ -145,6 +158,8 @@ void fdlist_fd_set(int fd, fdNode **fd_list){
     }
     p = malloc(sizeof(fdNode));
     p->fd = fd;
+    p->adr = adr;
+    p->addrlen = len;
     p->nextNode = NULL;
 
     if(previous_node == NULL){ //empty list
@@ -154,7 +169,8 @@ void fdlist_fd_set(int fd, fdNode **fd_list){
     }
 }
 
-void fdlist_fd_clr(int fd, fdNode *fd_list){
+void fdlist_fd_clr(int fd, fdNode *fd_list, fd_set *fdset){
+    FD_CLR(fd, fdset);
     fdNode *p;
     fdNode *previous_node = fd_list;
     for(p = fd_list; p->fd != fd; p = p->nextNode){
