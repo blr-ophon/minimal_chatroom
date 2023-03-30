@@ -13,23 +13,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-typedef struct fd_node{
-    int fd;
-    struct sockaddr adr;
-    socklen_t addrlen;
-    char *nick;
-    struct fd_node *nextNode;
-}fdNode;
+#include "fdlist.h"
 
-void fdlist_free(fdNode *topnode);
-
-void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNode **fd_list);
-
-void fdlist_fd_clr(int fd, fdNode **fd_list);
-
-void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list);
-
-int fdlist_getmax(fdNode *fd_list);
 
 fdNode *comm_sock_init(void);
 

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
     freeaddrinfo(addresses);
 
     char send_msg_buf[4096] = {0};
-    char recv_msg_buf[4096] = {0};
+    char recv_msg_buf[4096 + 32 + 16 + 5] = {0};
 
     struct timeval timeout;
     timeout.tv_sec = 0;

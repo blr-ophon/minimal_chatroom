@@ -45,15 +45,6 @@ int main(void){
     fdlist_free(monitored_fds);
 }
 
-void fdlist_free(fdNode *topnode){
-    fdNode *p, *temp;
-    for(p = topnode; p != NULL; p = temp){
-        temp = p->nextNode;
-        close(p->fd);
-        free(p);
-    }
-}
-
 fdNode *comm_sock_init(void){
     struct addrinfo *address_list;
 
@@ -189,6 +180,7 @@ void print_addr(struct addrinfo *addr){
         }
         printf("%s\n%s\n", host_buf, serv_buf);
 }
+/*
 
 void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNode **fd_list){
     fdNode *previous_node = NULL;
@@ -247,3 +239,14 @@ int fdlist_getmax(fdNode *fd_list){
     }
     return max;
 }
+
+
+void fdlist_free(fdNode *topnode){
+    fdNode *p, *temp;
+    for(p = topnode; p != NULL; p = temp){
+        temp = p->nextNode;
+        close(p->fd);
+        free(p);
+    }
+}
+*/

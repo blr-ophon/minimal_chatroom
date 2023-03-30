@@ -21,25 +21,32 @@ CLIENT_O := $(CLIENT_C:${CLIENT_SRC}/%.c=$(CLIENT_BUILD)/%.o)
 SERVER_C := $(shell find ./server -name '*.c')
 SERVER_O := $(SERVER_C:${SERVER_SRC}/%.c=$(SERVER_BUILD)/%.o)
 
+CLIENT_EXEC := ./mncr_client
+SERVER_EXEC := ./mncr_server
 
 
-all: ${CLIENT_O} ${SERVER_O}
+all: ${CLIENT_EXEC} ${SERVER_EXEC}
 
+${CLIENT_EXEC}: ${CLIENT_O}
+	${CC} ${CFLAGS} ${INCLUDES} $^ -o $@
+
+${SERVER_EXEC}: ${SERVER_O}
+	${CC} ${CFLAGS} ${INCLUDES} $^ -o $@
 
 ${BUILD_DIR}/client/%.o: ${CLIENT_SRC}/%.c ${HEADERS}
 	mkdir -p $(dir $@)
-	$(CC) ${CFLAGS} ${INCLUDES} $< -o $@
+	$(CC) ${CFLAGS} ${INCLUDES} -c $< -o $@
 
 ${BUILD_DIR}/server/%.o: ${SERVER_SRC}/%.c ${HEADERS}
 	mkdir -p $(dir $@)
-	$(CC) ${CFLAGS} ${INCLUDES} $< -o $@
+	$(CC) ${CFLAGS} ${INCLUDES} -c $< -o $@
 
 
 clean:
 	rm -rf ${BUILD_DIR}
 
-run-client: ${CLIENT_O}
+run-client: ${CLIENT_EXEC}
 	$^ 127.0.0.1 8080
 
-run-server: ${SERVER_O}
+run-server: ${SERVER_EXEC}
 	$^ 
