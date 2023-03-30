@@ -10,7 +10,7 @@ void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNod
     p->fd = fd;
     p->adr = adr;
     p->addrlen = len;
-    p->nick = nick;
+    strncpy(p->nick, nick, strlen(nick));
     p->nextNode = NULL;
 
     if(previous_node == NULL){ //empty list

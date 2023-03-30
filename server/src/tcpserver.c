@@ -18,24 +18,7 @@ int main(void){
 
         //new connections
         if(FD_ISSET(monitored_fds->fd, &ready_fds)){
-
-            struct sockaddr client_addr;
-            socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
-            int client_sockfd = accept(monitored_fds->fd, &client_addr, &client_addr_len);
-            if(client_sockfd < 0){
-                printf("Failed accepting connection\n");
-            }
-
-            char nick_buf[16];
-            printf("Client connected\n");
-            int bytes_recv = recv(client_sockfd, nick_buf, sizeof(nick_buf), 0);
-            nick_buf[bytes_recv-1] = '\0';
-            if(bytes_recv < 1){
-                printf("Client connection closed\n");
-                continue;
-            }
-
-            fdlist_fd_set(client_sockfd, client_addr, client_addr_len, nick_buf, &monitored_fds);
+            handle_new_conn(monitored_fds);
 
         }else{
             handle_connections(monitored_fds, ready_fds);
@@ -43,6 +26,36 @@ int main(void){
     }
     //TODO: free monitored_fds
     fdlist_free(monitored_fds);
+}
+
+void handle_new_conn(fdNode *monitored_fds){
+    struct sockaddr client_addr;
+    socklen_t client_addr_len = (socklen_t) sizeof(client_addr);
+    int client_sockfd = accept(monitored_fds->fd, &client_addr, &client_addr_len);
+    if(client_sockfd < 0){
+        printf("Failed accepting connection\n");
+    }
+
+    /*
+    char nick_buf[16];
+    printf("Client connected\n");
+    int bytes_recv = recv(client_sockfd, nick_buf, sizeof(nick_buf), 0);
+    nick_buf[bytes_recv-1] = '\0';
+    if(bytes_recv < 1){
+        printf("Client connection closed\n");
+    }else{
+    */
+    fdlist_fd_set(client_sockfd, client_addr, client_addr_len, "default", &monitored_fds);
+}
+
+void command_handler(char *msg){
+    if(msg[0] != '/'){
+        return;
+    }
+}
+
+void update_nick(fdNode *client, char *nick){
+    strncpy(client->nick, nick, strlen(nick));
 }
 
 fdNode *comm_sock_init(void){
@@ -180,73 +193,3 @@ void print_addr(struct addrinfo *addr){
         }
         printf("%s\n%s\n", host_buf, serv_buf);
 }
-/*
-
-void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNode **fd_list){
-    fdNode *previous_node = NULL;
-    fdNode *p;
-    for(p = *fd_list; p != NULL; p = p->nextNode){
-        previous_node = p;
-    }
-    p = malloc(sizeof(fdNode));
-    p->fd = fd;
-    p->adr = adr;
-    p->addrlen = len;
-    p->nick = nick;
-    p->nextNode = NULL;
-
-    if(previous_node == NULL){ //empty list
-        *fd_list = p;
-    }else{
-        previous_node->nextNode = p;
-    }
-}
-
-void fdlist_fd_clr(int fd, fdNode **fd_list){
-    if((*fd_list)->fd == fd){ //top of the list
-        fdNode *temp = (*fd_list)->nextNode;
-        free(*fd_list);
-        *fd_list = temp;
-        return;
-    }
-    fdNode *p = *fd_list;
-    fdNode *previous_node = p;
-    for(; p->fd != fd; p = p->nextNode){
-        if(p == NULL){
-            return;
-        }
-        previous_node = p;
-    }
-    previous_node->nextNode = p->nextNode;
-    free(p);
-}
-
-void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list){
-    FD_ZERO(ready_fds);
-    fdNode *p;
-    for(p = fd_list; p != NULL; p = p->nextNode){
-        FD_SET(p->fd, ready_fds);
-    }
-}
-
-int fdlist_getmax(fdNode *fd_list){
-    fdNode *p;
-    int max = 0;
-    for(p = fd_list; p != NULL; p = p->nextNode){
-        if(p->fd >= max){
-            max = p->fd;
-        }
-    }
-    return max;
-}
-
-
-void fdlist_free(fdNode *topnode){
-    fdNode *p, *temp;
-    for(p = topnode; p != NULL; p = temp){
-        temp = p->nextNode;
-        close(p->fd);
-        free(p);
-    }
-}
-*/

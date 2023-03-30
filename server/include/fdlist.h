@@ -2,6 +2,7 @@
 #define FDLIST_H
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,7 +13,7 @@ typedef struct fd_node{
     int fd;
     struct sockaddr adr;
     socklen_t addrlen;
-    char *nick;
+    char nick[16];
     struct fd_node *nextNode;
 }fdNode;
 

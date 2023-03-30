@@ -18,6 +18,8 @@
 
 fdNode *comm_sock_init(void);
 
+void handle_new_conn(fdNode *monitored_fds);
+
 void handle_connections(fdNode *monitored_fds, fd_set ready_fds);
 
 void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source);

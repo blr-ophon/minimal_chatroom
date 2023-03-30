@@ -46,7 +46,7 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 run-client: ${CLIENT_EXEC}
-	$^ 127.0.0.1 8080
+	./$^ 127.0.0.1 8080
 
 run-server: ${SERVER_EXEC}
-	$^ 
+	./$^ 
