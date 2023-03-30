@@ -24,7 +24,7 @@ void fdlist_free(fdNode *topnode);
 
 void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list);
 
-void fdlist_fd_clr(int fd, fdNode *fd_list);
+void fdlist_fd_clr(int fd, fdNode **fd_list);
 
 void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list);
 

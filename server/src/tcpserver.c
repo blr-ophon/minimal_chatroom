@@ -74,24 +74,27 @@ fdNode *comm_sock_init(void){
     return monitored_fds;
 }
 
-void handle_connections(fdNode *monitored_fds, fd_set ready_fds){
-    fdNode *p = monitored_fds->nextNode;
+void handle_connections(fdNode *fdlist, fd_set ready_fds){
+    fdNode *previous_node = fdlist;
+    fdNode *p = fdlist->nextNode;
     for(; p != NULL; p = p->nextNode){
         if(FD_ISSET(p->fd, &ready_fds)){
             char recv_msg_buf[4096];
             int bytes_recv = recv(p->fd, recv_msg_buf, sizeof(recv_msg_buf), 0);
             if(bytes_recv < 1){
                 printf("Client connection closed\n");
-                fdlist_fd_clr(p->fd, monitored_fds);
-                break;
+                fdlist_fd_clr(p->fd, &fdlist);
+                p = previous_node;
+                continue;
             }
             recv_msg_buf[bytes_recv] = '\0';
             printf("%d bytes received\n", bytes_recv);
             printf("> %s", recv_msg_buf);
 
             //send message to all clients
-            broadcast_msg(recv_msg_buf, monitored_fds, p);
+            broadcast_msg(recv_msg_buf, fdlist, p);
         }
+        previous_node = p;
     }
 }
 
@@ -196,14 +199,20 @@ void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, fdNode **fd_list)
     }
 }
 
-void fdlist_fd_clr(int fd, fdNode *fd_list){
-    fdNode *p;
-    fdNode *previous_node = fd_list;
-    for(p = fd_list; p->fd != fd; p = p->nextNode){
+void fdlist_fd_clr(int fd, fdNode **fd_list){
+    if((*fd_list)->fd == fd){ //top of the list
+        fdNode *temp = (*fd_list)->nextNode;
+        free(*fd_list);
+        *fd_list = temp;
+        return;
+    }
+    fdNode *p = *fd_list;
+    fdNode *previous_node = p;
+    for(; p->fd != fd; p = p->nextNode){
         if(p == NULL){
             return;
         }
-        previous_node = fd_list;
+        previous_node = p;
     }
     previous_node->nextNode = p->nextNode;
     free(p);
