@@ -41,28 +41,31 @@ int main(int argc, char *argv[]){
 
     fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
 
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(sockfd, &readfds);
+    FD_SET(0, &readfds);        //for stdin
+
     while(!isQuitMessage(send_msg_buf)){
+        fd_set cpy_fds = readfds;
 
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(sockfd, &readfds);
-        FD_SET(0, &readfds);        //for stdin
-
-        if(select(sockfd+1, &readfds, 0, 0, &timeout) < 0){
+        if(select(sockfd+1, &cpy_fds, 0, 0, &timeout) < 0){
             perror("select");
         }
 
-        if(FD_ISSET(sockfd, &readfds)){ //receive message 
+        if(FD_ISSET(sockfd, &cpy_fds)){ //receive message 
             int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
             recv_msg_buf[4095] = '\0';
             if(recv_bytes < 1){
                 printf("Server connection closed\n");
+                FD_CLR(sockfd, &readfds);
+                break;
             }else{
                 printf("%d bytes received. Message:\n%s\n", recv_bytes, recv_msg_buf);
             }
         }
 
-        if(FD_ISSET(0, &readfds)){
+        if(FD_ISSET(0, &cpy_fds)){
             //prompt for message
             fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
             int bytes_sent = send(sockfd, send_msg_buf, strlen(send_msg_buf), 0);
