@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    struct addrinfo *addresses;
+    struct addrinfo *addresses = NULL;
     int rv = getaddrinfo(hostname_buf, port_buf, &hints, &addresses);
     if(rv < 0){
         printf("getaddrinfo: %s\n", gai_strerror(rv));
