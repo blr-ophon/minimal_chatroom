@@ -50,17 +50,6 @@ void handle_new_conn(fdNode *monitored_fds){
     */
     fdlist_fd_set(client_sockfd, client_addr, client_addr_len, "default", &monitored_fds);
 }
-
-void command_handler(char *msg){
-    if(msg[0] != '/'){
-        return;
-    }
-}
-
-void update_nick(fdNode *client, char *nick){
-    strncpy(client->nick, nick, strlen(nick));
-}
-
 fdNode *comm_sock_init(void){
     struct addrinfo *address_list;
 
@@ -107,12 +96,44 @@ void handle_connections(fdNode *fdlist, fd_set ready_fds){
             printf("%d bytes received\n", bytes_recv);
             printf("> %s", recv_msg_buf);
 
-            //send message to all clients
-            broadcast_msg(recv_msg_buf, fdlist, p);
+            if(is_command(recv_msg_buf)){
+                command_handler(p, recv_msg_buf);
+            }else{
+                //send message to all clients
+                broadcast_msg(recv_msg_buf, fdlist, p);
+            }
         }
         previous_node = p;
     }
 }
+
+int is_command(char *msg){
+    return msg[0] == '/';
+}
+
+//returns 1 if message should not be broadcasted
+void command_handler(fdNode *client, char *msg){
+    //commands 
+    if(strstr(msg, "/nick ") == &msg[0]){
+        update_nick(client, &msg[5]); //sends address of whitespace after /nick
+    }
+}
+
+void update_nick(fdNode *client, char *nick){
+    int nick_len = strlen(nick);
+    if(nick_len > 16) nick_len = 16;
+    if(nick_len > 0){
+        for(int i = 1; i < nick_len; i ++){
+            //TODO: test for other invalid characters
+            if(nick[i] == '\n'){
+                nick[i] = '\0';
+            }
+        }
+        //gets whatever is after whitespace
+        strncpy(client->nick, &nick[1], nick_len);
+    }
+}
+
 
 void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source){
     //expects the communication node to be the first on the list
@@ -125,6 +146,8 @@ void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source){
     }
 
     char formatted_msg[4096 + 32 + 16 + 5]; //msg + maxaddr + nick + brackets;
+    
+    //[nickname(ip)] on the start of the message
     sprintf(formatted_msg, "[%s(%s)] ", source->nick, origin_str);
     //strncat(formatted_msg, origin_str, strlen(origin_str));
 

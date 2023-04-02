@@ -40,9 +40,9 @@ int main(int argc, char *argv[]){
     timeout.tv_usec = 100000;
 
     printf("Nickname: ");
-    char nick_buf[16];
-    fgets(nick_buf, sizeof(nick_buf), stdin);
-    int bytes_sent = send(sockfd, nick_buf, strlen(nick_buf), 0);
+    char nick_buf[6 + 16] = "/nick ";
+    fgets(&nick_buf[6], 16, stdin);
+    int bytes_sent = send(sockfd, nick_buf, strlen(nick_buf), 0); 
     if(bytes_sent == -1){
         perror("recv");
     }

@@ -1,5 +1,6 @@
 #include "fdlist.h"
 
+//Adds new client to the fdlist linked list
 void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNode **fd_list){
     fdNode *previous_node = NULL;
     fdNode *p;
@@ -20,6 +21,7 @@ void fdlist_fd_set(int fd, struct sockaddr adr, socklen_t len, char *nick, fdNod
     }
 }
 
+//removes client from the fdlist linked list
 void fdlist_fd_clr(int fd, fdNode **fd_list){
     if((*fd_list)->fd == fd){ //top of the list
         fdNode *temp = (*fd_list)->nextNode;
@@ -39,6 +41,7 @@ void fdlist_fd_clr(int fd, fdNode **fd_list){
     free(p);
 }
 
+//Converts fdlist linked list to an fd_set to be used in select
 void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list){
     FD_ZERO(ready_fds);
     fdNode *p;
@@ -47,6 +50,7 @@ void fdlist_to_fdset(fd_set *ready_fds, fdNode *fd_list){
     }
 }
 
+//Gets the highest file descriptor in the list. To be used in select
 int fdlist_getmax(fdNode *fd_list){
     fdNode *p;
     int max = 0;
@@ -58,6 +62,7 @@ int fdlist_getmax(fdNode *fd_list){
     return max;
 }
 
+//Frees entire fdlist linked list
 void fdlist_free(fdNode *topnode){
     fdNode *p, *temp;
     for(p = topnode; p != NULL; p = temp){
