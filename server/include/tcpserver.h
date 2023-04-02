@@ -14,6 +14,8 @@
 #include <arpa/inet.h>
 
 #include "fdlist.h"
+#include "sockhandler.h"
+#include "commands.h"
 
 
 fdNode *comm_sock_init(void);
@@ -21,19 +23,5 @@ fdNode *comm_sock_init(void);
 int try_addresses(struct addrinfo *const addresses, struct addrinfo *returned);
 
 void print_addr(struct addrinfo *addr);
-
-//connection handler
-void handle_new_conn(fdNode *monitored_fds);
-
-void handle_connections(fdNode *monitored_fds, fd_set ready_fds);
-
-void broadcast_msg(char *msg, fdNode *fdlist, fdNode *source);
-
-//command handler
-int is_command(char *msg);
-
-void command_handler(fdNode *client, char *msg);
-
-void update_nick(fdNode *client, char *nick);
 
 #endif
