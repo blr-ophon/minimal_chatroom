@@ -4,6 +4,7 @@ CFLAGS = -std=gnu99 -fPIC -g -Wall -Wextra -pedantic $(OPT)
 
 INCLUDES := -I./client/include -I./server/include
 HEADERS := $(shell find ./ -name '*.h')
+LIBS := -lncurses
 
 BUILD_DIR := ./build
 
@@ -28,7 +29,7 @@ SERVER_EXEC := ./mncr_server
 all: ${CLIENT_EXEC} ${SERVER_EXEC}
 
 ${CLIENT_EXEC}: ${CLIENT_O}
-	${CC} ${CFLAGS} ${INCLUDES} $^ -o $@
+	${CC} ${CFLAGS} ${INCLUDES} $^ -o $@ ${LIBS}
 
 ${SERVER_EXEC}: ${SERVER_O}
 	${CC} ${CFLAGS} ${INCLUDES} $^ -o $@

@@ -26,7 +26,7 @@ void handle_connections(fdNode *fdlist, fd_set ready_fds){
             }
             recv_msg_buf[bytes_recv] = '\0';
             printf("%d bytes received\n", bytes_recv);
-            printf("> %s", recv_msg_buf);
+            printf("> %s\n", recv_msg_buf);
 
             if(is_command(recv_msg_buf)){
                 command_handler(p, recv_msg_buf);

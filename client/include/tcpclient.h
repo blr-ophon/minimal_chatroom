@@ -13,6 +13,8 @@
 
 #include <unistd.h>
 
+#include "chatgui.h"
+
 bool isQuitMessage(char *msg);
 
 int try_connection(struct addrinfo *const addresses);

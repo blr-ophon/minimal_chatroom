@@ -6,6 +6,7 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
+//////////////////////////////////////////////////////////////////////////////// 
     char hostname_buf[100];
     char port_buf[100];
     strncpy(hostname_buf, argv[1], strlen(argv[1]));
@@ -31,6 +32,7 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
     freeaddrinfo(addresses);
+//////////////////////////////////////////////////////////////////////////////// 
 
     char send_msg_buf[4096] = {0};
     char recv_msg_buf[4096 + 32 + 16 + 5] = {0};
@@ -39,6 +41,7 @@ int main(int argc, char *argv[]){
     timeout.tv_sec = 0;
     timeout.tv_usec = 100000;
 
+    //Prompt user for nickname and send info to server
     printf("Nickname: ");
     char nick_buf[6 + 16] = "/nick ";
     fgets(&nick_buf[6], 16, stdin);
@@ -47,6 +50,11 @@ int main(int argc, char *argv[]){
         perror("recv");
     }
 
+    //Start gui
+    struct chatgui gui;
+    chatgui_init(&gui);
+    chatgui_render(&gui);
+
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(sockfd, &readfds);
@@ -54,6 +62,7 @@ int main(int argc, char *argv[]){
 
     //while(!isQuitMessage(send_msg_buf)){
     while(1){
+
         fd_set cpy_fds = readfds;
 
         if(select(sockfd+1, &cpy_fds, 0, 0, &timeout) < 0){
@@ -64,17 +73,20 @@ int main(int argc, char *argv[]){
             int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
             recv_msg_buf[recv_bytes] = '\0';
             if(recv_bytes < 1){
-                printf("Server connection closed");
+                //printf("Server connection closed");
+                chatgui_out(&gui, "Server connection closed\n");
                 FD_CLR(sockfd, &readfds);
                 break;
             }else{
-                printf("> %s", recv_msg_buf);
+                chatgui_out(&gui, recv_msg_buf);
+                //printf("> %s", recv_msg_buf);
             }
         }
 
         if(FD_ISSET(0, &cpy_fds)){
             //prompt for message
-            fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
+            //fgets(send_msg_buf, sizeof(send_msg_buf), stdin);
+            chatgui_input(&gui, send_msg_buf, sizeof(send_msg_buf));
             int bytes_sent = send(sockfd, send_msg_buf, strlen(send_msg_buf), 0);
             if(bytes_sent == -1){
                 perror("recv");
