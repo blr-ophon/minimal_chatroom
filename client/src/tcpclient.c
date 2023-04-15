@@ -53,7 +53,6 @@ int main(int argc, char *argv[]){
     //Start gui
     struct chatgui gui;
     chatgui_init(&gui);
-    chatgui_render(&gui);
 
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -62,7 +61,7 @@ int main(int argc, char *argv[]){
 
     //while(!isQuitMessage(send_msg_buf)){
     while(1){
-
+        chatgui_render(&gui);
         fd_set cpy_fds = readfds;
 
         if(select(sockfd+1, &cpy_fds, 0, 0, &timeout) < 0){
@@ -70,8 +69,9 @@ int main(int argc, char *argv[]){
         }
 
         if(FD_ISSET(sockfd, &cpy_fds)){ //receive message 
-            int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf), 0);
-            recv_msg_buf[recv_bytes] = '\0';
+            int recv_bytes = recv(sockfd, recv_msg_buf, sizeof(recv_msg_buf)-1, 0);
+            recv_msg_buf[recv_bytes] = '\n';
+            recv_msg_buf[recv_bytes+1] = '\0';
             if(recv_bytes < 1){
                 //printf("Server connection closed");
                 chatgui_out(&gui, "Server connection closed\n");

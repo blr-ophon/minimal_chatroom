@@ -2,6 +2,7 @@
 #define CHATGUI_H
 
 #include <curses.h>
+#include <signal.h>
 #include <string.h>
 
 struct chatgui{
