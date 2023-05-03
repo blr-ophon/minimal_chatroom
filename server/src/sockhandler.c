@@ -6,6 +6,7 @@ void handle_new_conn(fdNode *monitored_fds){
     int client_sockfd = accept(monitored_fds->fd, &client_addr, &client_addr_len);
     if(client_sockfd < 0){
         printf("Failed accepting connection\n");
+        return;
     }
 
     fdlist_fd_set(client_sockfd, client_addr, client_addr_len, "default", &monitored_fds);
